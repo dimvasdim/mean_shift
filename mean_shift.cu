@@ -107,7 +107,7 @@ void getinput(double *x, char *filename)
     printf("Error opening the file...");
     exit(1);
   }
-  str = fgets(str, 2 * DIMENSIONS * sizeof(double), fin);
+  str = fgets(str, 2 * DIMENSIONS * sizeof(double), fin); //Take one point.
   while (str != NULL && i < N)
   {
     token = strtok(str, "\t"); //get one dimension per recursion.
@@ -162,6 +162,11 @@ void meanshift(double *dev_x, double *dev_y, int dim, double eps, double var)
     start = chunk * j;
     end = start + chunk;
   }
+  /** Each block has its own shared memory and the
+      size of it is number of threads multiplied by
+      (dimensions + 1) to store the values of nominators
+       and denominator that each thread finds.
+  **/
   extern __shared__ double s[];
   double *nominator = &s[0];
   double *denominator = &s[n_th * dim];
@@ -171,6 +176,7 @@ void meanshift(double *dev_x, double *dev_y, int dim, double eps, double var)
   int l, r;
   while (!converge)
   {
+    //Initialize nominators and denominators as 0.
     for (r=0; r<dim; r++)
     {
       nominator[j*dim + r] = 0;
@@ -183,7 +189,7 @@ void meanshift(double *dev_x, double *dev_y, int dim, double eps, double var)
       distance = find_distance(dev_y, i, dev_x, l, dim);
       if (sqrt(distance) <= var)
       {
-        k = exp(-distance / (2 * var));
+        k = exp(-distance / (2 * var)); //Guassian possibility density function.
       }
       else
       {
